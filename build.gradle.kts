@@ -44,7 +44,13 @@ tasks {
         minecraftVersion("26.2")
         jvmArgs("-Dcom.mojang.eula.agree=true")
         // 25565 is the shared test-server, 25566 is Nature7
-        args("--port", "25567")
+        // offline mode so the test bots can join without accounts
+        args("--port", "25567", "--online-mode", "false")
+        // mineflayer only speaks 26.1, Via translates for it
+        downloadPlugins {
+            url("https://cdn.modrinth.com/data/P1OZGk5p/versions/TEgYlalY/ViaVersion-5.12.1-SNAPSHOT.jar")
+            url("https://cdn.modrinth.com/data/NpvuJQoq/versions/w6P38zDf/ViaBackwards-5.12.1-SNAPSHOT.jar")
+        }
     }
 
     test {
