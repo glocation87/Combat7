@@ -34,4 +34,14 @@ public final class CombatEffects {
         world.playSound(at, Sound.BLOCK_ANVIL_LAND, 0.7f, 1.5f);
         world.playSound(at, Sound.ENTITY_ZOMBIE_ATTACK_IRON_DOOR, 0.5f, 1.8f);
     }
+
+    public static void blocked(Location at) {
+        World world = at.getWorld();
+        world.spawnParticle(Particle.CRIT, at, 8, 0.2, 0.2, 0.2, 0.2);
+        world.playSound(at, Sound.ITEM_SHIELD_BLOCK, 1f, 1f);
+    }
+
+    public static void shieldUp(Player player) {
+        player.getWorld().playSound(player.getLocation(), Sound.ITEM_ARMOR_EQUIP_GENERIC, 0.8f, 1.2f);
+    }
 }

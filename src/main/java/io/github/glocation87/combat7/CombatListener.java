@@ -2,12 +2,14 @@ package io.github.glocation87.combat7;
 
 import io.github.glocation87.combat7.clash.ClashTracker;
 import io.github.glocation87.combat7.parry.ParryTracker;
+import io.github.glocation87.combat7.shield.ShieldService;
 import java.util.OptionalDouble;
 import java.util.UUID;
 import java.util.function.Supplier;
 import net.kyori.adventure.text.Component;
 import net.kyori.adventure.text.format.NamedTextColor;
 import org.bukkit.Bukkit;
+import org.bukkit.entity.Entity;
 import org.bukkit.entity.LivingEntity;
 import org.bukkit.entity.Player;
 import org.bukkit.event.EventHandler;
@@ -29,11 +31,14 @@ public final class CombatListener implements Listener {
     private final Supplier<CombatConfig> config;
     private final ParryTracker parries;
     private final ClashTracker clashes;
+    private final ShieldService shields;
 
-    public CombatListener(Supplier<CombatConfig> config, ParryTracker parries, ClashTracker clashes) {
+    public CombatListener(Supplier<CombatConfig> config, ParryTracker parries, ClashTracker clashes,
+            ShieldService shields) {
         this.config = config;
         this.parries = parries;
         this.clashes = clashes;
+        this.shields = shields;
     }
 
     // Right clicks on air arrive already cancelled, so this can't use ignoreCancelled
@@ -55,6 +60,7 @@ public final class CombatListener implements Listener {
         }
     }
 
+    // Parry beats shield beats clash, a hit only ever gets one of them
     @EventHandler(priority = EventPriority.HIGH, ignoreCancelled = true)
     public void onDamage(EntityDamageByEntityEvent event) {
         int now = Bukkit.getCurrentTick();
@@ -68,6 +74,8 @@ public final class CombatListener implements Listener {
         }
         CombatConfig settings = config.get();
         if (attacker != null && tryParry(victim, attacker, now, settings.parry())) {
+            event.setCancelled(true);
+        } else if (tryBlock(victim, event.getDamager(), settings.shield())) {
             event.setCancelled(true);
         } else if (event.getCause() == DamageCause.ENTITY_ATTACK && attacker instanceof Player striker
                 && tryClash(striker, victim, now, settings.clash())) {
@@ -92,6 +100,7 @@ public final class CombatListener implements Listener {
         UUID id = event.getPlayer().getUniqueId();
         parries.forget(id);
         clashes.forget(id);
+        shields.lower(id);
     }
 
     private boolean tryParry(Player victim, LivingEntity attacker, int now, CombatConfig.Parry parry) {
@@ -111,6 +120,15 @@ public final class CombatListener implements Listener {
 
         CombatEffects.parry(Geometry.contactPoint(victim, attacker));
         victim.sendActionBar(Component.text("Parry!", NamedTextColor.GOLD));
+        return true;
+    }
+
+    private boolean tryBlock(Player victim, Entity damager, CombatConfig.Shield shield) {
+        if (!shields.isShielding(victim)
+                || !Geometry.isInFront(victim.getLocation(), damager.getLocation(), shield.arcDegrees())) {
+            return false;
+        }
+        CombatEffects.blocked(victim.getEyeLocation().add(Geometry.forward(victim.getYaw()).multiply(0.6)));
         return true;
     }
 
