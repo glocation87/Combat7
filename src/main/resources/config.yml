@@ -22,7 +22,7 @@ dash:
 clash:
   # two hits landing this close together count as swords colliding
   window-ticks: 4
-  knockback: 0.6
+  knockback: 0.35
 
 shield:
   arc-degrees: 90
