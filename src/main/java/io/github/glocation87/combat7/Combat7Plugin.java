@@ -1,5 +1,6 @@
 package io.github.glocation87.combat7;
 
+import io.github.glocation87.combat7.clash.ClashTracker;
 import io.github.glocation87.combat7.parry.ParryTracker;
 import org.bukkit.plugin.java.JavaPlugin;
 
@@ -11,7 +12,7 @@ public class Combat7Plugin extends JavaPlugin {
         saveDefaultConfig();
         settings = CombatConfig.from(getConfig());
 
-        CombatListener listener = new CombatListener(this::settings, new ParryTracker());
+        CombatListener listener = new CombatListener(this::settings, new ParryTracker(), new ClashTracker());
         getServer().getPluginManager().registerEvents(listener, this);
     }
 

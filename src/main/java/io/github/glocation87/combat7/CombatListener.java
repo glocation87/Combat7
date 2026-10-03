@@ -1,6 +1,8 @@
 package io.github.glocation87.combat7;
 
+import io.github.glocation87.combat7.clash.ClashTracker;
 import io.github.glocation87.combat7.parry.ParryTracker;
+import java.util.OptionalDouble;
 import java.util.UUID;
 import java.util.function.Supplier;
 import net.kyori.adventure.text.Component;
@@ -26,10 +28,12 @@ public final class CombatListener implements Listener {
 
     private final Supplier<CombatConfig> config;
     private final ParryTracker parries;
+    private final ClashTracker clashes;
 
-    public CombatListener(Supplier<CombatConfig> config, ParryTracker parries) {
+    public CombatListener(Supplier<CombatConfig> config, ParryTracker parries, ClashTracker clashes) {
         this.config = config;
         this.parries = parries;
+        this.clashes = clashes;
     }
 
     // Right clicks on air arrive already cancelled, so this can't use ignoreCancelled
@@ -62,8 +66,24 @@ public final class CombatListener implements Listener {
         if (!(event.getEntity() instanceof Player victim)) {
             return;
         }
-        if (attacker != null && tryParry(victim, attacker, now, config.get().parry())) {
+        CombatConfig settings = config.get();
+        if (attacker != null && tryParry(victim, attacker, now, settings.parry())) {
             event.setCancelled(true);
+        } else if (event.getCause() == DamageCause.ENTITY_ATTACK && attacker instanceof Player striker
+                && tryClash(striker, victim, now, settings.clash())) {
+            event.setCancelled(true);
+        }
+    }
+
+    // Only hits that actually land can be the first half of a clash
+    @EventHandler(priority = EventPriority.MONITOR, ignoreCancelled = true)
+    public void onHitLanded(EntityDamageByEntityEvent event) {
+        if (event.getCause() == DamageCause.ENTITY_ATTACK
+                && event.getDamager() instanceof Player striker
+                && event.getEntity() instanceof Player victim
+                && Weapons.holdsSword(striker)
+                && Weapons.holdsSword(victim)) {
+            clashes.record(striker.getUniqueId(), victim.getUniqueId(), Bukkit.getCurrentTick(), event.getFinalDamage());
         }
     }
 
@@ -71,6 +91,7 @@ public final class CombatListener implements Listener {
     public void onQuit(PlayerQuitEvent event) {
         UUID id = event.getPlayer().getUniqueId();
         parries.forget(id);
+        clashes.forget(id);
     }
 
     private boolean tryParry(Player victim, LivingEntity attacker, int now, CombatConfig.Parry parry) {
@@ -90,6 +111,23 @@ public final class CombatListener implements Listener {
 
         CombatEffects.parry(Geometry.contactPoint(victim, attacker));
         victim.sendActionBar(Component.text("Parry!", NamedTextColor.GOLD));
+        return true;
+    }
+
+    private boolean tryClash(Player striker, Player victim, int now, CombatConfig.Clash clash) {
+        if (!Weapons.holdsSword(striker) || !Weapons.holdsSword(victim)) {
+            return false;
+        }
+        OptionalDouble earlier = clashes.takeCounter(striker.getUniqueId(), victim.getUniqueId(), now, clash.windowTicks());
+        if (earlier.isEmpty()) {
+            return false;
+        }
+        // The victim's swing already landed a moment ago, undo it so neither side takes damage
+        striker.heal(earlier.getAsDouble());
+
+        striker.setVelocity(Geometry.pushAway(victim.getLocation(), striker.getLocation(), clash.knockback(), KNOCKBACK_LIFT));
+        victim.setVelocity(Geometry.pushAway(striker.getLocation(), victim.getLocation(), clash.knockback(), KNOCKBACK_LIFT));
+        CombatEffects.clash(Geometry.contactPoint(striker, victim));
         return true;
     }
 

@@ -24,4 +24,14 @@ public final class CombatEffects {
         world.playSound(at, Sound.ITEM_SHIELD_BLOCK, 1f, 1.6f);
         world.playSound(at, Sound.BLOCK_ANVIL_LAND, 0.4f, 2f);
     }
+
+    public static void clash(Location at) {
+        World world = at.getWorld();
+        world.spawnParticle(Particle.FLASH, at, 1, 0, 0, 0, 0, Color.fromRGB(255, 220, 140));
+        world.spawnParticle(Particle.SWEEP_ATTACK, at, 1, 0, 0, 0, 0);
+        world.spawnParticle(Particle.ELECTRIC_SPARK, at, 40, 0.15, 0.15, 0.15, 0.6);
+        world.spawnParticle(Particle.CRIT, at, 30, 0.1, 0.1, 0.1, 0.7);
+        world.playSound(at, Sound.BLOCK_ANVIL_LAND, 0.7f, 1.5f);
+        world.playSound(at, Sound.ENTITY_ZOMBIE_ATTACK_IRON_DOOR, 0.5f, 1.8f);
+    }
 }
