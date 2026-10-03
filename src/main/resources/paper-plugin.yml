@@ -3,3 +3,8 @@ version: '${version}'
 main: io.github.glocation87.combat7.Combat7Plugin
 api-version: '26.2'
 description: Sword combat with parries, dashes, clashes and a crouch shield.
+
+permissions:
+  combat7.admin:
+    description: Reload the combat config.
+    default: op
