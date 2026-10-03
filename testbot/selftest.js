@@ -40,6 +40,18 @@ function countSpawns(bot, entityName) {
     return seen;
 }
 
+function countSounds(bot, soundName) {
+    const seen = { count: 0 };
+    const listener = name => {
+        if (String(name).startsWith(soundName)) {
+            seen.count++;
+        }
+    };
+    bot.on("soundEffectHeard", listener);
+    seen.stop = () => bot.removeListener("soundEffectHeard", listener);
+    return seen;
+}
+
 // Hotbar slots are inventory slots 36 to 44
 function emptyHand(bot) {
     const slot = [...Array(9).keys()].find(i => !bot.inventory.slots[36 + i]);
@@ -176,13 +188,20 @@ async function shieldTest() {
 async function dashTest() {
     await reset();
     const clones = countSpawns(alpha, "mannequin");
+    const portal = countParticles(alpha, ["portal"]);
+    // the bot runs 26.1 sound ids and hears the neighbouring "entity.enderman.stare", real 26.2 clients get the teleport
+    const sounds = countSounds(alpha, "entity.enderman.");
     const start = pos(beta);
     // Beta faces west, so its left is south (+z)
     await dash(beta, "left");
     await sleep(1000);
+    portal.stop();
+    sounds.stop();
     const moved = pos(beta).minus(start);
     check("double tap left dashes left", moved.z > 2 && Math.abs(moved.x) < 0.7, `moved ${fmt(moved)}`);
     check("dash leaves after images", clones.count >= 2, `${clones.count} mannequins`);
+    check("dash plays the ender teleport at both ends", portal.count >= 2 && sounds.count >= 2,
+        `${portal.count} portal bursts, ${sounds.count} teleport sounds`);
     await sleep(500);
     check("after images clean up", near(alpha, "mannequin", pos(beta), 20).length === 0);
     clones.stop();
