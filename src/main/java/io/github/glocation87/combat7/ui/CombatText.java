@@ -58,6 +58,16 @@ public final class CombatText {
         }
     }
 
+    // On screen above the hotbar, where it stays readable mid fight
+    public void combo(Player attacker, int count) {
+        NamedTextColor color = count >= 7 ? NamedTextColor.RED : count >= 4 ? NamedTextColor.GOLD : NamedTextColor.YELLOW;
+        attacker.sendActionBar(Component.text(count + " HIT COMBO", color, TextDecoration.BOLD));
+    }
+
+    public void comboBroken(Player player) {
+        player.sendActionBar(Component.text("COMBO BROKEN", NamedTextColor.DARK_GRAY, TextDecoration.ITALIC));
+    }
+
     private static String format(double damage) {
         return damage == Math.rint(damage) ? String.valueOf((long) damage) : String.format(Locale.ROOT, "%.1f", damage);
     }

@@ -8,6 +8,7 @@ import io.github.glocation87.combat7.dash.DoubleTapDetector;
 import io.github.glocation87.combat7.parry.ParryTracker;
 import io.github.glocation87.combat7.shield.ShieldService;
 import io.github.glocation87.combat7.ui.CombatText;
+import io.github.glocation87.combat7.ui.ComboTracker;
 import io.papermc.paper.command.brigadier.Commands;
 import io.papermc.paper.plugin.lifecycle.event.types.LifecycleEvents;
 import org.bukkit.plugin.java.JavaPlugin;
@@ -28,7 +29,7 @@ public class Combat7Plugin extends JavaPlugin {
         text = new CombatText(this);
         DashService dashes = new DashService(this, this::settings, afterImages);
         CombatListener listener = new CombatListener(this::settings, new ParryTracker(), new ClashTracker(),
-            new DoubleTapDetector(), dashes, shields, text);
+            new DoubleTapDetector(), dashes, shields, text, new ComboTracker());
 
         getServer().getPluginManager().registerEvents(listener, this);
         getServer().getScheduler().runTaskTimer(this, shields::tick, 1L, 1L);

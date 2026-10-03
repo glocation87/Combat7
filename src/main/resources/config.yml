@@ -31,3 +31,5 @@ shield:
 ui:
   # floating damage numbers over whoever you hit, crits always show
   damage-numbers: true
+  # max gap between hits before a combo drops
+  combo-window-ticks: 40

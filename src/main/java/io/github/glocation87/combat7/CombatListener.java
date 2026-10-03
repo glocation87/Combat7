@@ -7,6 +7,7 @@ import io.github.glocation87.combat7.dash.DoubleTapDetector;
 import io.github.glocation87.combat7.parry.ParryTracker;
 import io.github.glocation87.combat7.shield.ShieldService;
 import io.github.glocation87.combat7.ui.CombatText;
+import io.github.glocation87.combat7.ui.ComboTracker;
 import java.util.OptionalDouble;
 import java.util.UUID;
 import java.util.function.Supplier;
@@ -39,9 +40,10 @@ public final class CombatListener implements Listener {
     private final DashService dashes;
     private final ShieldService shields;
     private final CombatText text;
+    private final ComboTracker combos;
 
     public CombatListener(Supplier<CombatConfig> config, ParryTracker parries, ClashTracker clashes,
-            DoubleTapDetector taps, DashService dashes, ShieldService shields, CombatText text) {
+            DoubleTapDetector taps, DashService dashes, ShieldService shields, CombatText text, ComboTracker combos) {
         this.config = config;
         this.parries = parries;
         this.clashes = clashes;
@@ -49,6 +51,7 @@ public final class CombatListener implements Listener {
         this.dashes = dashes;
         this.shields = shields;
         this.text = text;
+        this.combos = combos;
     }
 
     // Right clicks on air arrive already cancelled, so this can't use ignoreCancelled
@@ -107,7 +110,17 @@ public final class CombatListener implements Listener {
     public void onHitLanded(EntityDamageByEntityEvent event) {
         if (sourceOf(event.getDamager()) instanceof Player attacker && event.getEntity() instanceof LivingEntity victim
                 && event.getFinalDamage() > 0) {
-            text.hit(victim, attacker, event.getFinalDamage(), event.isCritical(), config.get().ui().damageNumbers());
+            CombatConfig.Ui ui = config.get().ui();
+            text.hit(victim, attacker, event.getFinalDamage(), event.isCritical(), ui.damageNumbers());
+            if (event.getCause() == DamageCause.ENTITY_ATTACK) {
+                int count = combos.hit(attacker.getUniqueId(), victim.getUniqueId(), Bukkit.getCurrentTick(), ui.comboWindowTicks());
+                if (count >= 2) {
+                    text.combo(attacker, count);
+                }
+            }
+        }
+        if (event.getEntity() instanceof Player victim) {
+            breakCombo(victim);
         }
         if (event.getCause() == DamageCause.ENTITY_ATTACK
                 && event.getDamager() instanceof Player striker
@@ -126,6 +139,7 @@ public final class CombatListener implements Listener {
         taps.forget(id);
         dashes.forget(id);
         shields.lower(id);
+        combos.forget(id);
     }
 
     private boolean tryParry(Player victim, LivingEntity attacker, int now, CombatConfig.Parry parry) {
@@ -145,6 +159,9 @@ public final class CombatListener implements Listener {
 
         CombatEffects.parry(Geometry.contactPoint(victim, attacker));
         text.parry(victim, attacker);
+        if (attacker instanceof Player player) {
+            breakCombo(player);
+        }
         return true;
     }
 
@@ -174,6 +191,13 @@ public final class CombatListener implements Listener {
         CombatEffects.clash(Geometry.contactPoint(striker, victim));
         text.clash(striker, victim);
         return true;
+    }
+
+    // Only worth announcing once there was a real chain going
+    private void breakCombo(Player player) {
+        if (combos.broken(player.getUniqueId()) >= 3) {
+            text.comboBroken(player);
+        }
     }
 
     // Whoever is really behind the damage, the shooter for arrows and tridents
