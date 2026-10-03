@@ -6,15 +6,15 @@ import io.github.glocation87.combat7.dash.DashService;
 import io.github.glocation87.combat7.dash.DoubleTapDetector;
 import io.github.glocation87.combat7.parry.ParryTracker;
 import io.github.glocation87.combat7.shield.ShieldService;
+import io.github.glocation87.combat7.ui.CombatText;
 import java.util.OptionalDouble;
 import java.util.UUID;
 import java.util.function.Supplier;
-import net.kyori.adventure.text.Component;
-import net.kyori.adventure.text.format.NamedTextColor;
 import org.bukkit.Bukkit;
 import org.bukkit.entity.Entity;
 import org.bukkit.entity.LivingEntity;
 import org.bukkit.entity.Player;
+import org.bukkit.entity.Projectile;
 import org.bukkit.event.EventHandler;
 import org.bukkit.event.EventPriority;
 import org.bukkit.event.Listener;
@@ -38,15 +38,17 @@ public final class CombatListener implements Listener {
     private final DoubleTapDetector taps;
     private final DashService dashes;
     private final ShieldService shields;
+    private final CombatText text;
 
     public CombatListener(Supplier<CombatConfig> config, ParryTracker parries, ClashTracker clashes,
-            DoubleTapDetector taps, DashService dashes, ShieldService shields) {
+            DoubleTapDetector taps, DashService dashes, ShieldService shields, CombatText text) {
         this.config = config;
         this.parries = parries;
         this.clashes = clashes;
         this.taps = taps;
         this.dashes = dashes;
         this.shields = shields;
+        this.text = text;
     }
 
     // Right clicks on air arrive already cancelled, so this can't use ignoreCancelled
@@ -138,7 +140,7 @@ public final class CombatListener implements Listener {
         }
 
         CombatEffects.parry(Geometry.contactPoint(victim, attacker));
-        victim.sendActionBar(Component.text("Parry!", NamedTextColor.GOLD));
+        text.parry(victim, attacker);
         return true;
     }
 
@@ -148,6 +150,7 @@ public final class CombatListener implements Listener {
             return false;
         }
         CombatEffects.blocked(victim.getEyeLocation().add(Geometry.forward(victim.getYaw()).multiply(0.6)));
+        text.block(victim, sourceOf(damager));
         return true;
     }
 
@@ -165,7 +168,13 @@ public final class CombatListener implements Listener {
         striker.setVelocity(Geometry.pushAway(victim.getLocation(), striker.getLocation(), clash.knockback(), KNOCKBACK_LIFT));
         victim.setVelocity(Geometry.pushAway(striker.getLocation(), victim.getLocation(), clash.knockback(), KNOCKBACK_LIFT));
         CombatEffects.clash(Geometry.contactPoint(striker, victim));
+        text.clash(striker, victim);
         return true;
+    }
+
+    // Whoever is really behind the damage, the shooter for arrows and tridents
+    private static Entity sourceOf(Entity damager) {
+        return damager instanceof Projectile projectile && projectile.getShooter() instanceof Entity shooter ? shooter : damager;
     }
 
     private static @Nullable LivingEntity meleeAttacker(EntityDamageByEntityEvent event) {
