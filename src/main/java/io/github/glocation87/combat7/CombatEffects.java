@@ -41,6 +41,10 @@ public final class CombatEffects {
         world.playSound(at, Sound.ITEM_SHIELD_BLOCK, 1f, 1f);
     }
 
+    public static void dodged(Location at) {
+        at.getWorld().playSound(at, Sound.ENTITY_PLAYER_ATTACK_NODAMAGE, 1f, 1.4f);
+    }
+
     public static void shieldUp(Player player) {
         player.getWorld().playSound(player.getLocation(), Sound.ITEM_ARMOR_EQUIP_GENERIC, 0.8f, 1.2f);
     }

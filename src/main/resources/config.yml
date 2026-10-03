@@ -16,6 +16,8 @@ dash:
   cooldown-ticks: 24
   speed: 1.1
   lift: 0.25
+  # the start of a dash where hits miss you
+  dodge-ticks: 5
   # max clones, one per tick while you're still moving faster than a sprint
   after-images: 4
   after-image-ticks: 8

@@ -20,6 +20,7 @@ public final class DashService {
     private final Supplier<CombatConfig> config;
     private final AfterImages afterImages;
     private final Map<UUID, Integer> readyAt = new HashMap<>();
+    private final Map<UUID, Integer> dodgeEnds = new HashMap<>();
 
     public DashService(Plugin plugin, Supplier<CombatConfig> config, AfterImages afterImages) {
         this.plugin = plugin;
@@ -39,6 +40,7 @@ public final class DashService {
         Vector velocity = direction.relativeTo(player.getYaw()).multiply(dash.speed()).setY(dash.lift());
         player.setVelocity(velocity);
         readyAt.put(player.getUniqueId(), now + dash.cooldownTicks());
+        dodgeEnds.put(player.getUniqueId(), now + dash.dodgeTicks());
 
         CombatEffects.teleport(player);
         plugin.getServer().getScheduler().runTaskLater(plugin, () -> {
@@ -50,8 +52,14 @@ public final class DashService {
         return true;
     }
 
+    public boolean isDodging(UUID id, int now) {
+        Integer end = dodgeEnds.get(id);
+        return end != null && now <= end;
+    }
+
     public void forget(UUID id) {
         readyAt.remove(id);
+        dodgeEnds.remove(id);
     }
 
     // Only with a sword out, otherwise every double tap of W while walking around would launch you

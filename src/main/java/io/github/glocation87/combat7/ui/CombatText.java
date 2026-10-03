@@ -45,6 +45,11 @@ public final class CombatText {
         pop(at, Component.text("CLASH!", NamedTextColor.YELLOW, TextDecoration.BOLD), 1.6f, first, second);
     }
 
+    public void dodge(Player victim, Entity source) {
+        pop(overHead(victim), Component.text("DODGE", NamedTextColor.WHITE, TextDecoration.BOLD, TextDecoration.ITALIC), 1.3f,
+            victim, source);
+    }
+
     public void block(Player victim, Entity source) {
         pop(overHead(victim), Component.text("BLOCK", NamedTextColor.GRAY, TextDecoration.BOLD), 1.2f, victim, source);
     }

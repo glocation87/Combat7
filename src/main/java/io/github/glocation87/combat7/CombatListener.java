@@ -82,7 +82,7 @@ public final class CombatListener implements Listener {
             .ifPresent(direction -> dashes.tryDash(player, direction, now));
     }
 
-    // Parry beats shield beats clash, a hit only ever gets one of them
+    // Dodge beats parry beats shield beats clash, a hit only ever gets one of them
     @EventHandler(priority = EventPriority.HIGH, ignoreCancelled = true)
     public void onDamage(EntityDamageByEntityEvent event) {
         int now = Bukkit.getCurrentTick();
@@ -95,7 +95,11 @@ public final class CombatListener implements Listener {
             return;
         }
         CombatConfig settings = config.get();
-        if (attacker != null && tryParry(victim, attacker, now, settings.parry())) {
+        if (dashes.isDodging(victim.getUniqueId(), now)) {
+            event.setCancelled(true);
+            CombatEffects.dodged(victim.getLocation());
+            text.dodge(victim, sourceOf(event.getDamager()));
+        } else if (attacker != null && tryParry(victim, attacker, now, settings.parry())) {
             event.setCancelled(true);
         } else if (tryBlock(victim, event.getDamager(), settings.shield())) {
             event.setCancelled(true);

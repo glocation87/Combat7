@@ -7,8 +7,8 @@ public record CombatConfig(Parry parry, Dash dash, Clash clash, Shield shield, U
     public record Parry(int windowTicks, int cooldownTicks, int staggerTicks, double knockback, double arcDegrees) {
     }
 
-    public record Dash(int doubleTapTicks, int cooldownTicks, double speed, double lift, int afterImages,
-            int afterImageTicks) {
+    public record Dash(int doubleTapTicks, int cooldownTicks, double speed, double lift, int dodgeTicks,
+            int afterImages, int afterImageTicks) {
     }
 
     public record Clash(int windowTicks, double knockback) {
@@ -33,6 +33,7 @@ public record CombatConfig(Parry parry, Dash dash, Clash clash, Shield shield, U
                 root.getInt("dash.cooldown-ticks"),
                 root.getDouble("dash.speed"),
                 root.getDouble("dash.lift"),
+                root.getInt("dash.dodge-ticks"),
                 root.getInt("dash.after-images"),
                 root.getInt("dash.after-image-ticks")),
             new Clash(
