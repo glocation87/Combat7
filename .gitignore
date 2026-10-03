@@ -5,3 +5,4 @@ run/
 .vscode/
 *.iml
 bin/
+node_modules/

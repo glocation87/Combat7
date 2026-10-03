@@ -1,0 +1,12 @@
+{
+  "name": "combat7-testbot",
+  "private": true,
+  "description": "Sparring bot and automated checks for Combat7",
+  "scripts": {
+    "spar": "node bot.js",
+    "selftest": "node selftest.js"
+  },
+  "dependencies": {
+    "mineflayer": "^4.39.0"
+  }
+}
