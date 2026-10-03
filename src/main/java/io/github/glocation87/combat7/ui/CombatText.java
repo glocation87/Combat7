@@ -2,6 +2,7 @@ package io.github.glocation87.combat7.ui;
 
 import io.github.glocation87.combat7.Geometry;
 import java.util.HashSet;
+import java.util.Locale;
 import java.util.Set;
 import java.util.concurrent.ThreadLocalRandom;
 import net.kyori.adventure.text.Component;
@@ -46,6 +47,19 @@ public final class CombatText {
 
     public void block(Player victim, Entity source) {
         pop(overHead(victim), Component.text("BLOCK", NamedTextColor.GRAY, TextDecoration.BOLD), 1.2f, victim, source);
+    }
+
+    public void hit(LivingEntity victim, Player attacker, double damage, boolean critical, boolean numbers) {
+        String amount = numbers ? " " + format(damage) : "";
+        if (critical) {
+            pop(overHead(victim), Component.text("CRIT" + amount, NamedTextColor.GOLD, TextDecoration.BOLD), 1.4f, attacker, victim);
+        } else if (numbers) {
+            pop(overHead(victim), Component.text(format(damage), NamedTextColor.WHITE), 1f, attacker, victim);
+        }
+    }
+
+    private static String format(double damage) {
+        return damage == Math.rint(damage) ? String.valueOf((long) damage) : String.format(Locale.ROOT, "%.1f", damage);
     }
 
     private static Location overHead(Entity entity) {

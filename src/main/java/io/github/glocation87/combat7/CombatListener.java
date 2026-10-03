@@ -102,9 +102,13 @@ public final class CombatListener implements Listener {
         }
     }
 
-    // Only hits that actually land can be the first half of a clash
+    // Only hits that actually land get numbers, or can be the first half of a clash
     @EventHandler(priority = EventPriority.MONITOR, ignoreCancelled = true)
     public void onHitLanded(EntityDamageByEntityEvent event) {
+        if (sourceOf(event.getDamager()) instanceof Player attacker && event.getEntity() instanceof LivingEntity victim
+                && event.getFinalDamage() > 0) {
+            text.hit(victim, attacker, event.getFinalDamage(), event.isCritical(), config.get().ui().damageNumbers());
+        }
         if (event.getCause() == DamageCause.ENTITY_ATTACK
                 && event.getDamager() instanceof Player striker
                 && event.getEntity() instanceof Player victim

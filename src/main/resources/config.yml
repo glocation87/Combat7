@@ -27,3 +27,7 @@ clash:
 
 shield:
   arc-degrees: 90
+
+ui:
+  # floating damage numbers over whoever you hit, crits always show
+  damage-numbers: true

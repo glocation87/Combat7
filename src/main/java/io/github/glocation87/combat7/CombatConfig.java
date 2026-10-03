@@ -2,7 +2,7 @@ package io.github.glocation87.combat7;
 
 import org.bukkit.configuration.ConfigurationSection;
 
-public record CombatConfig(Parry parry, Dash dash, Clash clash, Shield shield) {
+public record CombatConfig(Parry parry, Dash dash, Clash clash, Shield shield, Ui ui) {
 
     public record Parry(int windowTicks, int cooldownTicks, int staggerTicks, double knockback, double arcDegrees) {
     }
@@ -15,6 +15,9 @@ public record CombatConfig(Parry parry, Dash dash, Clash clash, Shield shield) {
     }
 
     public record Shield(double arcDegrees) {
+    }
+
+    public record Ui(boolean damageNumbers) {
     }
 
     public static CombatConfig from(ConfigurationSection root) {
@@ -35,6 +38,7 @@ public record CombatConfig(Parry parry, Dash dash, Clash clash, Shield shield) {
             new Clash(
                 root.getInt("clash.window-ticks"),
                 root.getDouble("clash.knockback")),
-            new Shield(root.getDouble("shield.arc-degrees")));
+            new Shield(root.getDouble("shield.arc-degrees")),
+            new Ui(root.getBoolean("ui.damage-numbers")));
     }
 }
