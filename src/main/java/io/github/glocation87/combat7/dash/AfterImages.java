@@ -5,14 +5,20 @@ import io.github.glocation87.combat7.CombatEffects;
 import io.papermc.paper.datacomponent.item.ResolvableProfile;
 import java.util.HashSet;
 import java.util.Set;
+import java.util.function.Consumer;
 import org.bukkit.Location;
 import org.bukkit.entity.Mannequin;
 import org.bukkit.entity.Player;
 import org.bukkit.inventory.EntityEquipment;
 import org.bukkit.inventory.PlayerInventory;
 import org.bukkit.plugin.Plugin;
+import org.bukkit.scheduler.BukkitTask;
 
 public final class AfterImages {
+    // Blocks per tick, sprinting is about 0.28
+    private static final double DASH_SPEED_SQUARED = 0.3 * 0.3;
+    private static final int MAX_TRAIL_TICKS = 10;
+
     private final Plugin plugin;
     private final Set<Mannequin> alive = new HashSet<>();
 
@@ -20,16 +26,8 @@ public final class AfterImages {
         this.plugin = plugin;
     }
 
-    // One clone per tick, so they spread out along the path as the dash carries the player away
-    public void trail(Player player, int count, int lifeTicks) {
-        spawn(player, lifeTicks);
-        for (int i = 1; i < count; i++) {
-            plugin.getServer().getScheduler().runTaskLater(plugin, () -> {
-                if (player.isOnline()) {
-                    spawn(player, lifeTicks);
-                }
-            }, i);
-        }
+    public void trail(Player player, int clones, int lifeTicks) {
+        plugin.getServer().getScheduler().runTaskTimer(plugin, new Trail(player, clones, lifeTicks), 1L, 1L);
     }
 
     public void clear() {
@@ -37,10 +35,41 @@ public final class AfterImages {
         alive.clear();
     }
 
-    private void spawn(Player player, int lifeTicks) {
-        Location at = player.getLocation();
+    // Player velocity isn't tracked properly server side (the client moves itself), so speed comes from position.
+    // Clients send movement in bursts, some ticks see no move at all, so this counts clones instead of ticks
+    private final class Trail implements Consumer<BukkitTask> {
+        private final Player player;
+        private final int lifeTicks;
+        private int clonesLeft;
+        private int ticksLeft = MAX_TRAIL_TICKS;
+        private Location last;
+
+        private Trail(Player player, int clones, int lifeTicks) {
+            this.player = player;
+            this.lifeTicks = lifeTicks;
+            this.clonesLeft = clones;
+            this.last = player.getLocation();
+        }
+
+        @Override
+        public void accept(BukkitTask task) {
+            if (!player.isOnline() || clonesLeft <= 0 || ticksLeft-- <= 0) {
+                task.cancel();
+                return;
+            }
+            Location now = player.getLocation();
+            // the clone goes where the player just was, and only while they're going faster than a sprint
+            if (now.getWorld() == last.getWorld() && now.distanceSquared(last) > DASH_SPEED_SQUARED) {
+                spawn(player, last, lifeTicks);
+                clonesLeft--;
+            }
+            last = now;
+        }
+    }
+
+    private void spawn(Player player, Location at, int lifeTicks) {
         PlayerInventory inventory = player.getInventory();
-        Mannequin clone = player.getWorld().spawn(at, Mannequin.class, mannequin -> {
+        Mannequin clone = at.getWorld().spawn(at, Mannequin.class, mannequin -> {
             mannequin.setProfile(profileOf(player));
             mannequin.setDescription(null);
             mannequin.setMainHand(player.getMainHand());
