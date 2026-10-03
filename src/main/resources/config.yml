@@ -1,0 +1,28 @@
+# All times are in ticks, 20 ticks = 1 second
+
+parry:
+  # how long a right click keeps you parrying
+  window-ticks: 6
+  cooldown-ticks: 20
+  # how long a parried attacker can't deal melee damage
+  stagger-ticks: 20
+  knockback: 0.7
+  # how far off center (either side) an attacker can be and still get parried
+  arc-degrees: 75
+
+dash:
+  # max gap between the two taps
+  double-tap-ticks: 6
+  cooldown-ticks: 24
+  speed: 1.1
+  lift: 0.25
+  after-images: 4
+  after-image-ticks: 8
+
+clash:
+  # two hits landing this close together count as swords colliding
+  window-ticks: 4
+  knockback: 0.6
+
+shield:
+  arc-degrees: 90
