@@ -187,6 +187,18 @@ async function dashTest() {
     check("after images clean up", near(alpha, "mannequin", pos(beta), 20).length === 0);
     clones.stop();
 
+    // Beta stands flush against a wall on its left, so the dash goes nowhere
+    await reset();
+    run(`/fill 3 ${Y} 1 3 ${Y + 1} 1 minecraft:stone`);
+    run(`/tp C7Beta 3 ${Y} 0.7 90 0`);
+    await sleep(600);
+    const blocked = countSpawns(alpha, "mannequin");
+    await dash(beta, "left");
+    await sleep(800);
+    blocked.stop();
+    check("dash into a wall leaves no clones", blocked.count === 0, `${blocked.count} mannequins`);
+    run(`/fill 3 ${Y} 1 3 ${Y + 1} 1 minecraft:air`);
+
     await reset();
     const back = pos(beta);
     await dash(beta, "back");
