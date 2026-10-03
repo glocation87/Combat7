@@ -23,7 +23,7 @@ public class Combat7Plugin extends JavaPlugin {
 
         afterImages = new AfterImages(this);
         shields = new ShieldService(this);
-        DashService dashes = new DashService(this::settings, afterImages);
+        DashService dashes = new DashService(this, this::settings, afterImages);
         CombatListener listener = new CombatListener(this::settings, new ParryTracker(), new ClashTracker(),
             new DoubleTapDetector(), dashes, shields);
 

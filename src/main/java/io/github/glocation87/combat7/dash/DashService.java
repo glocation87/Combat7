@@ -9,14 +9,20 @@ import java.util.UUID;
 import java.util.function.Supplier;
 import org.bukkit.GameMode;
 import org.bukkit.entity.Player;
+import org.bukkit.plugin.Plugin;
 import org.bukkit.util.Vector;
 
 public final class DashService {
+    // Roughly when a dash has carried the player as far as it's going to
+    private static final long ARRIVE_TICKS = 6L;
+
+    private final Plugin plugin;
     private final Supplier<CombatConfig> config;
     private final AfterImages afterImages;
     private final Map<UUID, Integer> readyAt = new HashMap<>();
 
-    public DashService(Supplier<CombatConfig> config, AfterImages afterImages) {
+    public DashService(Plugin plugin, Supplier<CombatConfig> config, AfterImages afterImages) {
+        this.plugin = plugin;
         this.config = config;
         this.afterImages = afterImages;
     }
@@ -34,7 +40,12 @@ public final class DashService {
         player.setVelocity(velocity);
         readyAt.put(player.getUniqueId(), now + dash.cooldownTicks());
 
-        CombatEffects.dash(player);
+        CombatEffects.teleport(player);
+        plugin.getServer().getScheduler().runTaskLater(plugin, () -> {
+            if (player.isOnline()) {
+                CombatEffects.teleport(player);
+            }
+        }, ARRIVE_TICKS);
         afterImages.trail(player, dash.afterImages(), dash.afterImageTicks());
         return true;
     }

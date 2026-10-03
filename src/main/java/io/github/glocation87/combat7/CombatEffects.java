@@ -45,13 +45,15 @@ public final class CombatEffects {
         player.getWorld().playSound(player.getLocation(), Sound.ITEM_ARMOR_EQUIP_GENERIC, 0.8f, 1.2f);
     }
 
-    public static void dash(Player player) {
-        Location feet = player.getLocation();
-        player.getWorld().spawnParticle(Particle.SMALL_GUST, feet, 4, 0.3, 0.05, 0.3, 0);
-        player.getWorld().playSound(feet, Sound.ENTITY_BREEZE_JUMP, 0.7f, 1.3f);
+    // Same burst an enderman makes when it teleports, played where the dash starts and again where it ends
+    public static void teleport(Player player) {
+        Location body = player.getLocation().add(0, 1, 0);
+        World world = body.getWorld();
+        world.spawnParticle(Particle.PORTAL, body, 48, 0.3, 0.6, 0.3, 0.6);
+        world.playSound(body, Sound.ENTITY_ENDERMAN_TELEPORT, 0.8f, 1.1f);
     }
 
     public static void vanish(Location body) {
-        body.getWorld().spawnParticle(Particle.WHITE_SMOKE, body, 6, 0.2, 0.5, 0.2, 0.01);
+        body.getWorld().spawnParticle(Particle.REVERSE_PORTAL, body, 12, 0.2, 0.5, 0.2, 0.02);
     }
 }
