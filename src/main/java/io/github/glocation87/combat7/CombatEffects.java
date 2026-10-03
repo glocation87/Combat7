@@ -44,4 +44,14 @@ public final class CombatEffects {
     public static void shieldUp(Player player) {
         player.getWorld().playSound(player.getLocation(), Sound.ITEM_ARMOR_EQUIP_GENERIC, 0.8f, 1.2f);
     }
+
+    public static void dash(Player player) {
+        Location feet = player.getLocation();
+        player.getWorld().spawnParticle(Particle.SMALL_GUST, feet, 4, 0.3, 0.05, 0.3, 0);
+        player.getWorld().playSound(feet, Sound.ENTITY_BREEZE_JUMP, 0.7f, 1.3f);
+    }
+
+    public static void vanish(Location body) {
+        body.getWorld().spawnParticle(Particle.WHITE_SMOKE, body, 6, 0.2, 0.5, 0.2, 0.01);
+    }
 }

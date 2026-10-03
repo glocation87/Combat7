@@ -1,6 +1,9 @@
 package io.github.glocation87.combat7;
 
 import io.github.glocation87.combat7.clash.ClashTracker;
+import io.github.glocation87.combat7.dash.DashDirection;
+import io.github.glocation87.combat7.dash.DashService;
+import io.github.glocation87.combat7.dash.DoubleTapDetector;
 import io.github.glocation87.combat7.parry.ParryTracker;
 import io.github.glocation87.combat7.shield.ShieldService;
 import java.util.OptionalDouble;
@@ -17,6 +20,7 @@ import org.bukkit.event.EventPriority;
 import org.bukkit.event.Listener;
 import org.bukkit.event.entity.EntityDamageByEntityEvent;
 import org.bukkit.event.entity.EntityDamageEvent.DamageCause;
+import org.bukkit.event.player.PlayerInputEvent;
 import org.bukkit.event.player.PlayerInteractEvent;
 import org.bukkit.event.player.PlayerQuitEvent;
 import org.bukkit.inventory.EquipmentSlot;
@@ -31,13 +35,17 @@ public final class CombatListener implements Listener {
     private final Supplier<CombatConfig> config;
     private final ParryTracker parries;
     private final ClashTracker clashes;
+    private final DoubleTapDetector taps;
+    private final DashService dashes;
     private final ShieldService shields;
 
     public CombatListener(Supplier<CombatConfig> config, ParryTracker parries, ClashTracker clashes,
-            ShieldService shields) {
+            DoubleTapDetector taps, DashService dashes, ShieldService shields) {
         this.config = config;
         this.parries = parries;
         this.clashes = clashes;
+        this.taps = taps;
+        this.dashes = dashes;
         this.shields = shields;
     }
 
@@ -58,6 +66,15 @@ public final class CombatListener implements Listener {
             player.swingMainHand();
             CombatEffects.parryStart(player);
         }
+    }
+
+    @EventHandler
+    public void onInput(PlayerInputEvent event) {
+        Player player = event.getPlayer();
+        int now = Bukkit.getCurrentTick();
+        int window = config.get().dash().doubleTapTicks();
+        taps.update(player.getUniqueId(), DashDirection.pressed(event.getInput()), now, window)
+            .ifPresent(direction -> dashes.tryDash(player, direction, now));
     }
 
     // Parry beats shield beats clash, a hit only ever gets one of them
@@ -100,6 +117,8 @@ public final class CombatListener implements Listener {
         UUID id = event.getPlayer().getUniqueId();
         parries.forget(id);
         clashes.forget(id);
+        taps.forget(id);
+        dashes.forget(id);
         shields.lower(id);
     }
 
