@@ -13,6 +13,7 @@ import org.bukkit.inventory.EntityEquipment;
 import org.bukkit.inventory.PlayerInventory;
 import org.bukkit.plugin.Plugin;
 import org.bukkit.scheduler.BukkitTask;
+import org.bukkit.util.Vector;
 
 public final class AfterImages {
     // Blocks per tick, sprinting is about 0.28
@@ -26,8 +27,8 @@ public final class AfterImages {
         this.plugin = plugin;
     }
 
-    public void trail(Player player, int clones, int lifeTicks) {
-        plugin.getServer().getScheduler().runTaskTimer(plugin, new Trail(player, clones, lifeTicks), 1L, 1L);
+    public void trail(Player player, int clones, int framesPerTick, int lifeTicks) {
+        plugin.getServer().getScheduler().runTaskTimer(plugin, new Trail(player, clones, framesPerTick, lifeTicks), 1L, 1L);
     }
 
     public void clear() {
@@ -39,13 +40,15 @@ public final class AfterImages {
     // Clients send movement in bursts, some ticks see no move at all, so this counts clones instead of ticks
     private final class Trail implements Consumer<BukkitTask> {
         private final Player player;
+        private final int framesPerTick;
         private final int lifeTicks;
         private int clonesLeft;
         private int ticksLeft = MAX_TRAIL_TICKS;
         private Location last;
 
-        private Trail(Player player, int clones, int lifeTicks) {
+        private Trail(Player player, int clones, int framesPerTick, int lifeTicks) {
             this.player = player;
+            this.framesPerTick = Math.max(1, framesPerTick);
             this.lifeTicks = lifeTicks;
             this.clonesLeft = clones;
             this.last = player.getLocation();
@@ -58,10 +61,14 @@ public final class AfterImages {
                 return;
             }
             Location now = player.getLocation();
-            // the clone goes where the player just was, and only while they're going faster than a sprint
+            // only while they're going faster than a sprint
             if (now.getWorld() == last.getWorld() && now.distanceSquared(last) > DASH_SPEED_SQUARED) {
-                spawn(player, last, lifeTicks);
-                clonesLeft--;
+                // The server only sees one position a tick, so fill the stretch between with in-between frames
+                Vector step = now.toVector().subtract(last.toVector()).multiply(1.0 / framesPerTick);
+                for (int frame = 0; frame < framesPerTick && clonesLeft > 0; frame++) {
+                    spawn(player, last.clone().add(step.clone().multiply(frame)), lifeTicks);
+                    clonesLeft--;
+                }
             }
             last = now;
         }

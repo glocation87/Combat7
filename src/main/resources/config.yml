@@ -18,8 +18,10 @@ dash:
   lift: 0.25
   # the start of a dash where hits miss you
   dodge-ticks: 5
-  # max clones, one per tick while you're still moving faster than a sprint
-  after-images: 4
+  # max clones per dash, they only spawn while you're still moving faster than a sprint
+  after-images: 12
+  # clones per tick, filled in evenly along the path like extra frames
+  after-image-frames: 3
   after-image-ticks: 8
 
 clash:

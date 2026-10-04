@@ -48,7 +48,7 @@ public final class DashService {
                 CombatEffects.teleport(player);
             }
         }, ARRIVE_TICKS);
-        afterImages.trail(player, dash.afterImages(), dash.afterImageTicks());
+        afterImages.trail(player, dash.afterImages(), dash.afterImageFrames(), dash.afterImageTicks());
         return true;
     }
 
