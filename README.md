@@ -1,17 +1,15 @@
 # Combat7
-
-A Paper 26.2 plugin that adds skill based sword combat.
+Improve pvp with mmorpg style combat
 
 | Move | How | What happens |
 | --- | --- | --- |
-| Parry | Right click with a sword | Opens a 0.3s window. A melee hit from the front in that window is cancelled, the attacker is knocked back and can't deal melee damage for a second. A clean parry refunds the cooldown. |
-| Dash | Double tap W, A, S or D with a sword out | Teleport-style burst at both ends, glowing afterimage clones along the path. Hits in the first quarter second miss you (dodge). |
-| Clash | Two sword fighters hit each other within 4 ticks | Neither takes damage, both bounce back, sparks fly where the blades meet. |
-| Shield | Crouch with a sword in hand | A shield appears in front of you and blocks hits from the front. It vanishes when you stand up or switch off the sword. |
+| Parry | Right click with a sword | Opens a 0.3s window. A melee hit from the front in that window is cancelled, the attacker is knocked back and can't deal melee damage for a second. A clean parry refunds the cooldown |
+| Dash | Double tap W, A, S or D with a sword out | Teleport-style burst at both ends, glowing afterimage clones along the path. Hits in the first quarter second miss you (dodge) |
+| Clash | Two sword fighters hit each other within 4 ticks | Neither takes damage, both bounce back, sparks fly where the blades meet |
+| Shield | Crouch with a sword in hand | A shield appears in front of you and blocks hits from the front. It vanishes when you stand up or switch off the sword |
 
-### Combat text
 
-MMO style feedback, only shown to the two players in the exchange:
+Only shown to the two players in the exchange:
 
 - Floating damage numbers over whoever you hit, and a gold `CRIT` on critical hits
 - `PARRY`, `BLOCK`, `CLASH!` and `DODGE` pop up where they happen
