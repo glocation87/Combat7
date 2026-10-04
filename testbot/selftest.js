@@ -41,6 +41,31 @@ function countSpawns(bot, entityName) {
     return seen;
 }
 
+// Remembers where each entity spawned and when it went away
+function watchFade(bot, entityName) {
+    const spawned = new Map();
+    const gone = [];
+    const onSpawn = entity => {
+        if (entity.name === entityName) {
+            spawned.set(entity.id, entity.position.z);
+        }
+    };
+    const onGone = entity => {
+        if (spawned.has(entity.id)) {
+            gone.push({ z: spawned.get(entity.id), time: Date.now() });
+        }
+    };
+    bot.on("entitySpawn", onSpawn);
+    bot.on("entityGone", onGone);
+    return {
+        gone: () => gone,
+        stop: () => {
+            bot.removeListener("entitySpawn", onSpawn);
+            bot.removeListener("entityGone", onGone);
+        },
+    };
+}
+
 function countSounds(bot, soundName) {
     const seen = { count: 0 };
     const listener = name => {
@@ -279,6 +304,7 @@ async function uiTest() {
 async function dashTest() {
     await reset();
     const clones = countSpawns(alpha, "mannequin");
+    const fade = watchFade(alpha, "mannequin");
     const portal = countParticles(alpha, ["portal"]);
     // the bot runs 26.1 sound ids and hears the neighbouring "entity.enderman.stare", real 26.2 clients get the teleport
     const sounds = countSounds(alpha, "entity.enderman.");
@@ -300,6 +326,12 @@ async function dashTest() {
     await sleep(500);
     check("after images clean up", near(alpha, "mannequin", pos(beta), 20).length === 0);
     clones.stop();
+    fade.stop();
+    // back of the trail (lowest z) should go first, and spread out instead of vanishing in batches
+    const order = fade.gone().sort((a, b) => a.z - b.z);
+    const inOrder = order.every((clone, i) => i === 0 || clone.time >= order[i - 1].time);
+    const spread = order.length ? order.at(-1).time - order[0].time : 0;
+    check("clones fade one at a time from the back", inOrder && spread >= 400, `${order.length} gone over ${spread}ms`);
 
     // Beta stands flush against a wall on its left, so the dash goes nowhere
     await reset();
