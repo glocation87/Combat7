@@ -6,6 +6,14 @@ const alpha = connect("C7Alpha");
 const beta = connect("C7Beta");
 const results = [];
 
+// mineflayer reads team flags from a field that no longer exists, so keep the raw ones per team
+const teamFlags = {};
+alpha._client.on("teams", packet => {
+    if (packet.flags) {
+        teamFlags[packet.team] = packet.flags;
+    }
+});
+
 function check(label, ok, detail) {
     results.push(ok);
     log("selftest", `${ok ? "PASS" : "FAIL"} ${label}${detail ? `  (${detail})` : ""}`);
@@ -311,7 +319,16 @@ async function dashTest() {
     const start = pos(beta);
     // Beta faces west, so its left is south (+z)
     await dash(beta, "left");
-    await sleep(1000);
+    await sleep(150);
+    // The client draws an invisible entity translucent when the viewer shares a team that can see friendly invisibles
+    const clone = near(alpha, "mannequin", pos(beta), 8)[0];
+    const invisible = clone ? (clone.metadata[0] & 0x20) !== 0 : false;
+    const cloneTeam = clone ? alpha.teamMap[clone.uuid] : undefined;
+    const sharesTeam = cloneTeam !== undefined && alpha.teamMap[alpha.username] === cloneTeam;
+    const seesInvisible = cloneTeam !== undefined && teamFlags[cloneTeam.team]?.see_friendly_invisible === true;
+    check("clones are translucent to the viewer", invisible && sharesTeam && seesInvisible,
+        `invisible ${invisible}, team ${cloneTeam?.team}, shared ${sharesTeam}, sees friendly invisibles ${seesInvisible}`);
+    await sleep(850);
     portal.stop();
     sounds.stop();
     const moved = pos(beta).minus(start);
@@ -325,6 +342,7 @@ async function dashTest() {
         `${portal.count} portal bursts, ${sounds.count} teleport sounds`);
     await sleep(500);
     check("after images clean up", near(alpha, "mannequin", pos(beta), 20).length === 0);
+    check("faded clones leave the ghost team", clone !== undefined && alpha.teamMap[clone.uuid] === undefined);
     clones.stop();
     fade.stop();
     // back of the trail (lowest z) should go first, and spread out instead of vanishing in batches
