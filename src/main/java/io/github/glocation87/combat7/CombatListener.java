@@ -189,6 +189,7 @@ public final class CombatListener implements Listener {
         }
         // The victim's swing already landed a moment ago, undo it so neither side takes damage
         striker.heal(earlier.getAsDouble());
+        text.retractHit(victim);
 
         striker.setVelocity(Geometry.pushAway(victim.getLocation(), striker.getLocation(), clash.knockback(), KNOCKBACK_LIFT));
         victim.setVelocity(Geometry.pushAway(striker.getLocation(), victim.getLocation(), clash.knockback(), KNOCKBACK_LIFT));

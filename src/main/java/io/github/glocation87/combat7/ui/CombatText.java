@@ -1,9 +1,12 @@
 package io.github.glocation87.combat7.ui;
 
 import io.github.glocation87.combat7.Geometry;
+import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Locale;
+import java.util.Map;
 import java.util.Set;
+import java.util.UUID;
 import java.util.concurrent.ThreadLocalRandom;
 import net.kyori.adventure.text.Component;
 import net.kyori.adventure.text.format.NamedTextColor;
@@ -30,6 +33,7 @@ public final class CombatText {
 
     private final Plugin plugin;
     private final Set<TextDisplay> alive = new HashSet<>();
+    private final Map<UUID, TextDisplay> lastHit = new HashMap<>();
 
     public CombatText(Plugin plugin) {
         this.plugin = plugin;
@@ -57,16 +61,32 @@ public final class CombatText {
     public void hit(LivingEntity victim, Player attacker, double damage, boolean critical, boolean numbers) {
         String amount = numbers ? " " + format(damage) : "";
         if (critical) {
-            pop(overHead(victim), Component.text("CRIT" + amount, NamedTextColor.GOLD, TextDecoration.BOLD), 1.4f, attacker, victim);
+            Component text = Component.text("CRIT" + amount, NamedTextColor.GOLD, TextDecoration.BOLD);
+            lastHit.put(attacker.getUniqueId(), pop(overHead(victim), text, 1.4f, attacker, victim));
         } else if (numbers) {
-            pop(overHead(victim), Component.text(format(damage), NamedTextColor.WHITE), 1f, attacker, victim);
+            Component text = Component.text(format(damage), NamedTextColor.WHITE);
+            lastHit.put(attacker.getUniqueId(), pop(overHead(victim), text, 1f, attacker, victim));
+        }
+    }
+
+    // A clash refunds the hit that landed just before it, so its number shouldn't stay up
+    public void retractHit(Player attacker) {
+        TextDisplay display = lastHit.remove(attacker.getUniqueId());
+        if (display != null && alive.remove(display)) {
+            display.remove();
         }
     }
 
     // On screen above the hotbar, where it stays readable mid fight
     public void combo(Player attacker, int count) {
-        NamedTextColor color = count >= 7 ? NamedTextColor.RED : count >= 4 ? NamedTextColor.GOLD : NamedTextColor.YELLOW;
-        attacker.sendActionBar(Component.text(count + " HIT COMBO", color, TextDecoration.BOLD));
+        attacker.sendActionBar(Component.text(count + " HIT COMBO", comboColor(count), TextDecoration.BOLD));
+    }
+
+    private static NamedTextColor comboColor(int count) {
+        if (count >= 7) {
+            return NamedTextColor.RED;
+        }
+        return count >= 4 ? NamedTextColor.GOLD : NamedTextColor.YELLOW;
     }
 
     public void comboBroken(Player player) {
@@ -81,7 +101,7 @@ public final class CombatText {
         return entity.getLocation().add(0, entity.getHeight() + 0.25, 0);
     }
 
-    private void pop(Location at, Component text, float scale, Entity... involved) {
+    private TextDisplay pop(Location at, Component text, float scale, Entity... involved) {
         // a little sideways jitter so quick hits don't print on top of each other
         ThreadLocalRandom random = ThreadLocalRandom.current();
         Location spot = at.clone().add(random.nextDouble(-JITTER, JITTER), 0, random.nextDouble(-JITTER, JITTER));
@@ -112,11 +132,13 @@ public final class CombatText {
                 display.remove();
             }
         }, 1L + POP_TICKS + RISE_TICKS);
+        return display;
     }
 
     public void clear() {
         alive.forEach(TextDisplay::remove);
         alive.clear();
+        lastHit.clear();
     }
 
     private static void animate(TextDisplay display, int ticks, Transformation target) {
