@@ -172,9 +172,13 @@ async function clashTest() {
     const betaBefore = pos(beta);
     alpha.attack(entityOf(alpha, beta));
     beta.attack(entityOf(beta, alpha));
-    await sleep(600);
+    await sleep(250);
+    const leftover = Object.values(beta.entities)
+        .filter(entity => entity.name === "text_display" && /"value":"\d+"/.test(JSON.stringify(entity.metadata)));
+    await sleep(350);
     sparks.stop();
     clashTexts.stop();
+    check("clash takes the refunded damage number back down", leftover.length === 0, `${leftover.length} numbers still up`);
     check("clash: alpha takes no damage", alpha.health === 20, `alpha health ${alpha.health}`);
     check("clash: beta takes no damage", beta.health === 20, `beta health ${beta.health}`);
     const gap = pos(beta).x - pos(alpha).x;
