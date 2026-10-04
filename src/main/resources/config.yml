@@ -22,6 +22,7 @@ dash:
   after-images: 12
   # clones per tick, filled in evenly along the path like extra frames
   after-image-frames: 3
+  # how long the first clone lasts, the rest vanish one per tick after it
   after-image-ticks: 8
 
 clash:

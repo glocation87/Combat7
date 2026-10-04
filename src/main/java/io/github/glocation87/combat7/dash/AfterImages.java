@@ -44,6 +44,8 @@ public final class AfterImages {
         private final int lifeTicks;
         private int clonesLeft;
         private int ticksLeft = MAX_TRAIL_TICKS;
+        private int elapsed;
+        private int spawned;
         private Location last;
 
         private Trail(Player player, int clones, int framesPerTick, int lifeTicks) {
@@ -60,13 +62,17 @@ public final class AfterImages {
                 task.cancel();
                 return;
             }
+            elapsed++;
             Location now = player.getLocation();
             // only while they're going faster than a sprint
             if (now.getWorld() == last.getWorld() && now.distanceSquared(last) > DASH_SPEED_SQUARED) {
                 // The server only sees one position a tick, so fill the stretch between with in-between frames
                 Vector step = now.toVector().subtract(last.toVector()).multiply(1.0 / framesPerTick);
                 for (int frame = 0; frame < framesPerTick && clonesLeft > 0; frame++) {
-                    spawn(player, last.clone().add(step.clone().multiply(frame)), lifeTicks);
+                    // the nth clone along the path goes n ticks after the first, so the tail fades one at a time
+                    int removeAfter = Math.max(1, lifeTicks + spawned - elapsed);
+                    spawn(player, last.clone().add(step.clone().multiply(frame)), removeAfter);
+                    spawned++;
                     clonesLeft--;
                 }
             }
