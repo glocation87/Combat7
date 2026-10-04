@@ -22,6 +22,7 @@ public final class AfterImages {
 
     private final Plugin plugin;
     private final Set<Mannequin> alive = new HashSet<>();
+    private final GhostTeam ghosts = new GhostTeam();
 
     public AfterImages(Plugin plugin) {
         this.plugin = plugin;
@@ -34,6 +35,7 @@ public final class AfterImages {
     public void clear() {
         alive.forEach(Mannequin::remove);
         alive.clear();
+        ghosts.clear();
     }
 
     // Player velocity isn't tracked properly server side (the client moves itself), so speed comes from position.
@@ -96,13 +98,16 @@ public final class AfterImages {
             mannequin.setCollidable(false);
             mannequin.setSilent(true);
             mannequin.setGlowing(true);
+            mannequin.setInvisible(true);
             mannequin.setPersistent(false);
         });
         alive.add(clone);
+        ghosts.show(clone, at.getWorld().getPlayers());
 
         plugin.getServer().getScheduler().runTaskLater(plugin, () -> {
             if (alive.remove(clone)) {
                 CombatEffects.vanish(clone.getLocation().add(0, 1, 0));
+                ghosts.hide(clone);
                 clone.remove();
             }
         }, lifeTicks);
