@@ -29,10 +29,11 @@ function countParticles(bot, names) {
 }
 
 function countSpawns(bot, entityName) {
-    const seen = { count: 0 };
+    const seen = { count: 0, positions: [] };
     const listener = entity => {
         if (entity.name === entityName) {
             seen.count++;
+            seen.positions.push(entity.position.clone());
         }
     };
     bot.on("entitySpawn", listener);
@@ -112,6 +113,9 @@ async function setup() {
     run(`/fill -8 ${Y} -8 8 ${Y + 4} 8 minecraft:air`);
     run("/gamemode survival C7Alpha");
     run("/gamemode survival C7Beta");
+    // otherwise every run adds another sword until the hotbar has no empty slot left
+    run("/clear C7Alpha");
+    run("/clear C7Beta");
     run("/give C7Alpha minecraft:iron_sword");
     run("/give C7Beta minecraft:iron_sword");
     await sleep(1500);
@@ -286,7 +290,11 @@ async function dashTest() {
     sounds.stop();
     const moved = pos(beta).minus(start);
     check("double tap left dashes left", moved.z > 2 && Math.abs(moved.x) < 0.7, `moved ${fmt(moved)}`);
-    check("dash leaves after images", clones.count >= 2, `${clones.count} mannequins`);
+    // the dash runs along +z here, so sort by z and look at the biggest hole in the trail
+    const zs = clones.positions.map(p => p.z).sort((a, b) => a - b);
+    const widestGap = Math.max(0, ...zs.slice(1).map((z, i) => z - zs[i]));
+    check("dash leaves a dense trail of clones", clones.count >= 8 && widestGap < 0.7,
+        `${clones.count} mannequins, widest gap ${widestGap.toFixed(2)} blocks`);
     check("dash plays the ender teleport at both ends", portal.count >= 2 && sounds.count >= 2,
         `${portal.count} portal bursts, ${sounds.count} teleport sounds`);
     await sleep(500);
