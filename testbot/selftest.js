@@ -61,6 +61,35 @@ function emptyHand(bot) {
 const near = (bot, entityName, center, radius) => Object.values(bot.entities)
     .filter(entity => entity.name === entityName && entity.position.distanceTo(center) < radius);
 
+// Collects the floating combat text this bot gets shown, read straight out of the text display metadata
+function watchTexts(bot) {
+    const seen = new Map();
+    const listener = entity => {
+        const match = entity.name === "text_display" && JSON.stringify(entity.metadata).match(/"text":\{"type":"string","value":"([^"]*)"/);
+        if (match) {
+            seen.set(entity.id, match[1]);
+        }
+    };
+    bot.on("entityUpdate", listener);
+    return {
+        has: pattern => [...seen.values()].some(text => pattern.test(text)),
+        all: () => [...seen.values()].join(", ") || "nothing",
+        stop: () => bot.removeListener("entityUpdate", listener),
+    };
+}
+
+// mineflayer doesn't turn the action bar packet into its actionBar event, so this reads the packet
+function watchActionBar(bot) {
+    const seen = [];
+    const listener = packet => seen.push(JSON.stringify(packet.text));
+    bot._client.on("action_bar", listener);
+    return {
+        has: text => seen.some(line => line.includes(text)),
+        all: () => seen.map(line => (line.match(/"text":{"type":"string","value":"([^"]*)"/) ?? [])[1]).join(", ") || "nothing",
+        stop: () => bot._client.removeListener("action_bar", listener),
+    };
+}
+
 // Alpha faces east at x=0.5, Beta faces west at x=3, both full health with a sword out
 async function reset(alphaX = 0.5, alphaYaw = -90) {
     setShield(beta, false);
@@ -92,24 +121,30 @@ async function setup() {
 
 async function baseline() {
     await reset();
+    const texts = watchTexts(alpha);
     alpha.attack(entityOf(alpha, beta));
     await sleep(400);
+    texts.stop();
     check("plain hit does damage", beta.health < 20, `beta health ${beta.health}`);
+    check("hit shows a damage number", texts.has(/^\d+(\.\d)?$/), texts.all());
 }
 
 async function parryTest() {
     await reset();
     const sparks = countParticles(alpha, ["electric_spark", "flash"]);
+    const parryTexts = watchTexts(alpha);
     const before = pos(alpha);
     await parry(beta);
     await sleep(100);
     alpha.attack(entityOf(alpha, beta));
     await sleep(500);
     sparks.stop();
+    parryTexts.stop();
     const pushed = before.x - pos(alpha).x;
     check("parried hit does no damage", beta.health === 20, `beta health ${beta.health}`);
     check("attacker is knocked back", pushed > 0.5, `moved ${pushed.toFixed(2)} blocks`);
     check("parry vfx shows", sparks.count > 0, `${sparks.count} particle packets`);
+    check("attacker sees PARRY", parryTexts.has(/^PARRY$/), parryTexts.all());
 
     await reset();
     await parry(beta);
@@ -132,18 +167,21 @@ async function parryTest() {
 async function clashTest() {
     await reset();
     const sparks = countParticles(beta, ["electric_spark", "flash", "sweep_attack"]);
+    const clashTexts = watchTexts(beta);
     const alphaBefore = pos(alpha);
     const betaBefore = pos(beta);
     alpha.attack(entityOf(alpha, beta));
     beta.attack(entityOf(beta, alpha));
     await sleep(600);
     sparks.stop();
+    clashTexts.stop();
     check("clash: alpha takes no damage", alpha.health === 20, `alpha health ${alpha.health}`);
     check("clash: beta takes no damage", beta.health === 20, `beta health ${beta.health}`);
     const gap = pos(beta).x - pos(alpha).x;
     const gapBefore = betaBefore.x - alphaBefore.x;
     check("clash pushes both apart", gap > gapBefore + 0.8, `gap ${gapBefore.toFixed(2)} -> ${gap.toFixed(2)}`);
     check("clash vfx shows", sparks.count > 0, `${sparks.count} particle packets`);
+    check("both see CLASH!", clashTexts.has(/^CLASH!$/), clashTexts.all());
 
     await reset();
     alpha.attack(entityOf(alpha, beta));
@@ -160,8 +198,11 @@ async function shieldTest() {
     await sleep(400);
     const shields = near(alpha, "item_display", pos(beta), 2);
     check("crouching with a sword raises a shield", shields.length === 1, `${shields.length} shield displays`);
+    const blockTexts = watchTexts(alpha);
     alpha.attack(entityOf(alpha, beta));
     await sleep(400);
+    blockTexts.stop();
+    check("attacker sees BLOCK", blockTexts.has(/^BLOCK$/), blockTexts.all());
     check("shield blocks a hit from the front", beta.health === 20, `beta health ${beta.health}`);
 
     // Alpha goes behind Beta, still facing it
@@ -183,6 +224,48 @@ async function shieldTest() {
     check("no shield without a sword", near(alpha, "item_display", pos(beta), 3).length === 0);
     setShield(beta, false);
     await ensureSword(beta);
+}
+
+async function uiTest() {
+    await reset();
+    const bar = watchActionBar(alpha);
+    for (let hit = 0; hit < 3; hit++) {
+        // knockback pushes Beta out of reach, so put it back in front each time
+        run(`/tp C7Beta 3 ${Y} 0.5 90 0`);
+        await sleep(300);
+        await lookAt(alpha, entityOf(alpha, beta));
+        alpha.attack(entityOf(alpha, beta));
+        await sleep(400);
+    }
+    await lookAt(beta, entityOf(beta, alpha));
+    check("hits in a row count a combo", bar.has("2 HIT COMBO") && bar.has("3 HIT COMBO"), `${bar.all()}, beta health ${beta.health}`);
+    beta.attack(entityOf(beta, alpha));
+    await sleep(400);
+    bar.stop();
+    check("getting hit breaks the combo", bar.has("COMBO BROKEN"), bar.all());
+
+    await reset();
+    const crit = watchTexts(alpha);
+    alpha.setControlState("jump", true);
+    await sleep(100);
+    alpha.setControlState("jump", false);
+    // attack on the way down, that's what makes a vanilla crit
+    await sleep(350);
+    alpha.attack(entityOf(alpha, beta));
+    await sleep(500);
+    crit.stop();
+    check("falling hit shows CRIT", crit.has(/^CRIT/), crit.all());
+
+    await reset();
+    const dodge = watchTexts(alpha);
+    const dashing = dash(beta, "left");
+    await sleep(140);
+    alpha.attack(entityOf(alpha, beta));
+    await dashing;
+    await sleep(400);
+    dodge.stop();
+    check("hit during a dash is dodged", beta.health === 20, `beta health ${beta.health}`);
+    check("attacker sees DODGE", dodge.has(/^DODGE$/), dodge.all());
 }
 
 async function dashTest() {
@@ -257,6 +340,7 @@ async function dashTest() {
         await parryTest();
         await clashTest();
         await shieldTest();
+        await uiTest();
         await dashTest();
     } catch (err) {
         log("selftest", "crashed " + err.stack);
